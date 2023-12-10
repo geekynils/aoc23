@@ -28,16 +28,16 @@ typedef struct {
 } Str;
 
 Str mkstr(char* ptr) {
-    int sz = strlen(ptr);
-    return (Str) {ptr, sz};
+    size_t sz = strlen(ptr);
+    return (Str) {ptr, (int)sz};
 }
 
 /// Make Heap Str
 Str mkhstr(char* ptr) {
-    int sz = strlen(ptr);
+    size_t sz = strlen(ptr);
     char *hptr = (char*) malloc(sz);
     memcpy(hptr, ptr, sz);
-    return (Str){hptr, sz};
+    return (Str){hptr, (int)sz};
 }
 
 int ezy_strstr(Str haystack, Str needle) {
@@ -218,12 +218,24 @@ GameArray readGames(Str input) {
 bool isPossible(Game game, int *colors) {
     for (int i = 0; i < game.numMoves; ++i) {
         Move move = game.ptr[i];
-        printf("Move color %d\n", move.color);
         if (move.num > colors[move.color]) {
             return false;
         }
     }
     return true;
+}
+
+int findMinPowerSet(Game game) {
+    int maxs[] = {0, 0, 0};
+    for (int i = 0; i < game.numMoves; ++i) {
+        Move move = game.ptr[i];
+        maxs[move.color] = max(maxs[move.color], move.num);
+    }
+    int powerSet = 1;
+    for (int i = 0; i < 3; ++i) {
+        powerSet *= maxs[i];
+    }
+    return powerSet;
 }
 
 
@@ -247,7 +259,7 @@ int main(int argc, const char* argv[]) {
     fseek(fp, 0L, SEEK_END);
     size_t sz = ftell(fp);
     rewind(fp);
-    Str input = {(char*)malloc(sz), sz };
+    Str input = {(char*)malloc(sz), (int)sz };
     fread(input.s, 1, sz, fp);
     fclose(fp);
     if (strcmp(what, "one") == 0) {
@@ -263,7 +275,16 @@ int main(int argc, const char* argv[]) {
         free(games.ptr);
         printf("Sum of game numbers: %d\n", sum);
     } else {
-        printf("Not yet implemented!\n");
+        GameArray games = readGames(input);
+        int sum = 0;
+        for (int i = 0; i < games.sz; ++i) {
+            Game game = games.ptr[i];
+            int minPowerSet = findMinPowerSet(game);
+            sum += minPowerSet;
+            free(game.ptr);
+        }
+        free(games.ptr);
+        printf("Sum of min power sets: %d\n", sum);
     }
     free(input.s);
 }
